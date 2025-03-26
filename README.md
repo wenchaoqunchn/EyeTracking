@@ -17,7 +17,8 @@
 │   ├── __init__.py
 │   ├── detectors.py
 │   └── gazeplotter.py
-└── sample_data.csv
+├── sample_data.csv
+└── 参考文献/
 
 ```
 
@@ -32,6 +33,8 @@
 - `PyGazeAnalyser/`：一个经过微调的第三方库，用于数据分析。
 
 - `sample_data.csv`：示例输出的原始数据。
+
+- `参考文献/`：几篇可能对你有帮助的综述和前樊院学长李镕辰的小论文。
 
 ## 使用说明
 
