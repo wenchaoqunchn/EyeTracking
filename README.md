@@ -57,11 +57,22 @@
 - `stop_process(self)`：停止眼动追踪进程。
 - `is_running(self)`：检查眼动追踪是否在运行。
 
-#### 与 Tobii C# 库交互
+### 数据处理
+
+可以使用 `PyGazeAnalyser` 中的 `detectors.py` 提取注视和扫视等行为数据，使用 `gazeplotter.py` 进行可视化。（[PyGazeAnalyser参考链接](https://github.com/esdalmaijer/PyGazeAnalyser.git)）
+
+## 注意事项
+
+- 请确保您的系统中已安装 Tobii Experience。
+- 由于 DLL 文件之间存在相互依赖关系，缺少任何一个文件将导致程序无法正常运行。
+
+## EyeTracker类介绍
+
+### 与 Tobii C# 库交互
 
 在 `EyeTracker` 类中，通过 PythonNet 与 Tobii 的 C# 库进行交互，以下是与 Tobii C# 库交互的详细步骤和原理。
 
-1. **引入 CLR**
+1. #### **引入 CLR**
 
 首先，使用 PythonNet 的 CLR 模块来访问 .NET 组件：
 
@@ -69,7 +80,7 @@
 import clr
 ```
 
-2. **添加 DLL 引用**
+2. #### **添加 DLL 引用**
 
 通过 `clr.AddReference` 方法加载 Tobii 的 C# DLL 文件：
 
@@ -79,7 +90,7 @@ clr.AddReference("./dlls/tobii_interaction_lib_cs")
 
 - 这里引用的是 `tobii_interaction_lib_cs.dll`，这是一个 C# 库，提供了与 Tobii 硬件的交互接口。
 
-3. **导入 Tobii 命名空间**
+3. #### **导入 Tobii 命名空间**
 
 在加载 DLL 后，导入相应的 Tobii 命名空间，以便调用其类和方法：
 
@@ -87,7 +98,7 @@ clr.AddReference("./dlls/tobii_interaction_lib_cs")
 import Tobii.InteractionLib as tobii
 ```
 
-4. **创建 Tobii 交互库实例**
+4. #### **创建 Tobii 交互库实例**
 
 在 `track` 方法中，使用 `Tobii.InteractionLibFactory` 创建一个交互库实例：
 
@@ -97,7 +108,7 @@ lib = tobii.InteractionLibFactory.CreateInteractionLib(tobii.FieldOfUse.Interact
 
 - `CreateInteractionLib` 方法根据指定的使用场景（如 `Interactive`）创建一个交互库实例，允许我们进行眼动数据的捕获。
 
-5. **设置显示区域**
+5. #### **设置显示区域**
 
 使用交互库实例配置显示区域：
 
@@ -107,7 +118,7 @@ lib.CoordinateTransformAddOrUpdateDisplayArea(self.width, self.height)
 
 - 该方法设置眼动数据的坐标系统，使其与实际显示设备的分辨率相匹配。
 
-6. **绑定眼动数据事件**
+6. #### **绑定眼动数据事件**
 
 通过事件机制，将眼动数据事件与自定义的处理器进行绑定：
 
@@ -118,7 +129,7 @@ lib.GazePointDataEvent += lambda event: self.event_handler(event)
 - `GazePointDataEvent` 是一个事件，当 Tobii SDK 检测到新的眼动数据时，会触发该事件。
 - 通过 lambda 表达式，将 `event_handler` 方法作为事件的回调函数，确保每次事件触发时都会调用该方法处理数据。
 
-7. **等待和更新眼动数据**
+7. #### **等待和更新眼动数据**
 
 在 `track` 方法的主循环中，使用 `WaitAndUpdate` 方法持续监控眼动数据：
 
@@ -129,7 +140,7 @@ while self.running.value:
 
 - 该方法会阻塞当前线程，直到新的眼动数据可用。它确保程序能够实时接收和处理眼动信息。
 
-8. **停止眼动追踪**
+8. #### **停止眼动追踪**
 
 在停止眼动追踪时，不需要显式地调用 C# 库的方法来断开连接。通过设置状态变量来控制监测的停止：
 
@@ -139,13 +150,14 @@ self.running.value = False
 
 - 这使得 `track` 方法的循环结束，进而停止眼动数据的接收。
 
-#### 监测眼动事件
+### 监测眼动事件
 
 `EyeTracker` 类通过一系列步骤实现眼动数据的监测，以下是这些步骤的调用顺序和具体细节：
 
-1. **启动眼动追踪**：
-   
+1. #### **启动眼动追踪**：
+
    - 调用 `start_process` 方法：
+
      ```python
      def start_process(self):
          if not self.running.value:
@@ -154,21 +166,28 @@ self.running.value = False
              self.process.start()
              print("Eye tracking started.")
      ```
+
    - 此方法检查眼动追踪是否已在运行，如果未运行，则创建一个新进程，并调用 `track` 方法以开始监测。
-   
-2. **进入眼动追踪过程**：
+
+2. #### **进入眼动追踪过程**：
+
    - 在新进程中，调用 `track` 方法：
+
      ```python
      def track(self):
          lib = tobii.InteractionLibFactory.CreateInteractionLib(tobii.FieldOfUse.Interactive)
          lib.CoordinateTransformAddOrUpdateDisplayArea(self.width, self.height)
          lib.GazePointDataEvent += lambda event: self.event_handler(event)
      ```
+
    - 创建 Tobii 交互库实例，并设置显示区域的坐标转换。
+
    - 绑定 `GazePointDataEvent` 事件到 `event_handler` 方法，以便在眼动数据更新时自动调用该处理器。
 
-3. **处理眼动数据事件**：
+3. #### **处理眼动数据事件**：
+
    - 当 Tobii SDK 检测到新眼动数据时，会触发 `GazePointDataEvent` 事件，调用 `event_handler` 方法：
+
      ```python
      def event_handler(self, event: tobii.GazePointData):
          x = round(event.x, self.rounding)
@@ -182,19 +201,26 @@ self.running.value = False
                      f.write(data)
                      print("{},{},{}\n".format(t, x, y))
      ```
+
    - 在处理器中，首先获取眼动坐标 `x` 和 `y`，并检查数据的有效性。
+
    - 仅当数据有效且坐标在合理范围内时，获取当前时间戳，并将数据格式化为字符串记录到文件中。
 
-4. **持续监控**：
+4. #### **持续监控**：
+
    - 在 `track` 方法的主循环中，使用 `WaitAndUpdate` 方法不断等待并更新眼动数据：
+
      ```python
      while self.running.value:
          lib.WaitAndUpdate()
      ```
+
    - 该循环会在 `self.running` 状态为 `True` 时持续运行，确保实时监测眼动数据。
 
-5. **停止眼动追踪**：
+5. #### **停止眼动追踪**：
+
    - 通过调用 `stop_process` 方法可以停止眼动追踪：
+
      ```python
      def stop_process(self):
          if self.running and self.process is not None:
@@ -202,13 +228,5 @@ self.running.value = False
              self.process.join()
              print("Eye tracking stopped.")
      ```
+
    - 该方法设置 `running` 状态为 `False`，等待进程结束并打印停止信息。
-
-### 数据处理
-
-可以使用 `PyGazeAnalyser` 中的 `detectors.py` 提取注视和扫视等行为数据，使用 `gazeplotter.py` 进行可视化。（[PyGazeAnalyser参考链接](https://github.com/esdalmaijer/PyGazeAnalyser.git)）
-
-## 注意事项
-
-- 请确保您的系统中已安装 Tobii Experience。
-- 由于 DLL 文件之间存在相互依赖关系，缺少任何一个文件将导致程序无法正常运行。
